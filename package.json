@@ -1,0 +1,14 @@
+{
+  "name": "combine-async-error",
+  "version": "0.2.0",
+  "description": "将.then、.catch、try catch组合在一起，并在复杂的嵌套请求中体现combine-async-error工具类的强大",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "异步、错误、嵌套请求"
+  ],
+  "author": "FuncJin",
+  "license": "ISC"
+}

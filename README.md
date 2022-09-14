@@ -83,17 +83,16 @@ npm install combine-async-error
 import combineAsyncError from 'combine-async-error'
 
 const asyncQueue = [requestAuthor, requestPrice, requestPress]
-const end = data => console.log(data)
+const over = data => console.log(data)
 
-combineAsyncError(asyncQueue)
-	.then(end)
+combineAsyncError(asyncQueue, { over })
 ```
 
 ## 参数说明
 
 接收两个参数
 - `awaits`：异步任务队列
-- `config`：配置项
+- `configs`：配置项
 
 ### awaits
 
@@ -101,10 +100,9 @@ combineAsyncError(asyncQueue)
 
 ```js
 const asyncQueue = [ requestAuthor ]
-const end = data => console.log(data)
+const over = data => console.log(data)
 
-combineAsyncError(asyncQueue)
-	.then(end)
+combineAsyncError(asyncQueue, { over })
 ```
 
 当`awaits`是对象时，格式如下
@@ -117,10 +115,9 @@ const asyncQueue = [
         callback: Function.prototype
     }
 ]
-const end = data => console.log(data)
+const over = data => console.log(data)
 
-combineAsyncError(asyncQueue)
-    .then(end)
+combineAsyncError(asyncQueue, { over })
 ```
 `func`为要执行的请求函数
 
@@ -128,35 +125,23 @@ combineAsyncError(asyncQueue)
 
 `[callback]`会在请求函数执行完毕时调用；可选
 
-### config
+### configs
 
 传入`combineAsyncError`的配置项，如不传入，则全部使用默认配置项
 
 ## 配置项
 
-### isCheckTypes
-
-在设计`combine-async-error`时，关于传入的参数是否进行校验，其实是存在一些负面影响的，为此，`combine-async-error`主动添加了`isCheckTypes`配置项，如果该配置项的值为`false`，则不对入参进行检查，反之进行严格的类型检查。如果可以确保传入的类型始终是正确的，那么强烈建议你将该配置项更改为`false`；默认为`true`
-
-> 由于JavaScript中存在隐式类型转换，所以即使你指定了isCheckTypes为true，combine-async-error也不会对传入的第二个参数(config)进行检查
+### over
 
 ```js
-isCheckTypes: true
+over: (data) => console.log(data)
 ```
 
-### acc
-
-```js
-acc: () => {}
-```
-
-如果指定了该值为函数，则**所有请求**完成后会执行该函数，此`回调函数`会收到**最终的请求结果**
-
-如果未指定该值，则`combine-async-error`返回一个`Promise`对象，你可以在它的`then`方法中得到**最终的请求结果**
+必须指定该值为函数，**所有请求**完成后会执行该函数，此`回调函数`会收到**最终的请求结果**
 
 ### forever
 
-遇到错误时，是否继续执行(发出请求)。无论是嵌套还是并发请求模式，该配置项始终生效
+遇到错误时，是否继续执行(发出请求)
 
 ```js
 forever: false
@@ -181,89 +166,18 @@ pipes: {
 }
 ```
 
-### all
-
-`combine-async-error`应该得到原有的扩展，为此它支持新的配置项`all`，如果为`all`指定了`order`值，则传入`combine-async-error`的请求数组会并发执行，而不是继续以嵌套的形式执行
-
-下面的写法相当于使用了`all`的默认配置，因为`all`的值默认为`false`
-
-```js
-all: false // 嵌套请求
-```
-
-下面的写法则是开启了**并发之旅**，`all`为一个`对象`，其`order`属性决定并发的请求结果是否按照顺序来存放到最终数组中
-
-```js
-all: {
-	order: true
-}
-```
-
-关于`order`的使用，举例如下
-
-```
-// 假设requestAuthor始终会在3-6秒钟之内返回请求结果
-const requestAuthor = () => {}
-// 假设requestPrice始终会在1秒钟之内返回请求结果
-const requestPrice = () => {}
-
-const getInfo = [requestAuthor, requestPrice]
-combine-async-error(getInfo, {
-	all: {
-		order: true
-	}
-})
-```
-
-由于你指定了`order`为`true`，那么在**最终的请求结果**数组`result`中，`requestAuthor`的请求结果会作为`result`的第一个成员出现，而`requestPrice`的请求结果则会作为该数组的第二个成员出现，这是因为`order`始终会保证`result`与`getInfo`的顺序一一对应，即使`requestPrice`是最先执行完的请求函数
-
-如果指定了`order`为`false`，则最先执行完的请求函数所对应的结果就会在`result`中越靠前；在上例中`requestPrice`的请求结果会出现在`result`的第一个位置
-
-### requestCallback
-
-```js
-requestCallback: {
-	always: false,
-	success: false,
-	failed: false
-}
-```
-
-`always`表示无论请求函数是成功还是失败，都会在拿到请求结果后执行为该请求函数提前指定好的`callback`，此`callback`会收到当前请求函数的结果
-
-`success`表示只有当请求函数成功时，才会去执行提前执行好的`callback`，并且`callback`会收到当前请求函数执行成功的结果；`failed`则表示失败，与`success`同理
-
-例如，当传入请求函数的形式为
-
-```
-combine-async-error([
-	{
-		func: requestAuthor,
-		callback: () => {} // 提前为requestAuthor指定好的回调函数
-	}
-], {
-	requestCallback: {
-		failed: true // 指定了failed
-	}
-})
-```
-
-上述示例中，只有当`requestAuthor`请求函数出错时，才会执行该请求函数所指定好的`callback`回调，并且此回调函数会收到`requestAuthor`失败的原因
-
 ## 返回值
 
-需要注意的是，`combine-async-error`不会抛出任何错误(除非你传递的类型参数不正确)
+需要注意的是，`combine-async-error`不会抛出任何错误(除非你传递的参数不正确)
 
 ### combineAsyncError的返回值
 
-该返回值取决于是否指定了`acc`配置项
-`combineAsyncError`的返回值有以下两种情况
-- `undefined`
-- `Promise`实例
+无返回值
 
 ### 请求结果的返回值
 
 #### 请求成功
+
 当所有请求函数都执行成功时，收到的结果如下
 
 ```js
@@ -314,11 +228,3 @@ const interface = [true, false, true]
 # 不足
 
 如果你对`combine-async-error`有任何建议，欢迎反馈
-
-期待你的最优解
-
-
-    // 修复了配置项失效的问题
-    // requestCallback
-    // all
-    // isCheckTypes
